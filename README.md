@@ -9,13 +9,20 @@ github_pki is a command that can be used to retrieve and dump SSH keys from GitH
 ### Dump all keys from team `devops` in organization `zeorg` to `/home/bob/.ssh/authorized_keys`
 
 ```shell
-$ AUTHORIZED_KEYS=/home/bob/.ssh/authorized_keys GITHUB_ORG="zeorg" GITHUB_TEAM="devops" GITHUB_TOKEN=398d6d326b546d70f9e1ef91abad1fc5ee0f1f39 github_pki
+$ AUTHORIZED_KEYS=/home/bob/.ssh/authorized_keys \
+  GITHUB_ORG="zeorg" \
+  GITHUB_TEAM="devops" \
+  GITHUB_TOKEN=398d6d326b546d70f9e1ef91abad1fc5ee0f1f39 \
+    github_pki
 ```
 
 ### Dump all keys from specified users as X509 public keys
 
 ```shell
-$ SSL_DIR=/etc/software/ssl GITHUB_USERS="bob,alice" GITHUB_TOKEN=398d6d326b546d70f9e1ef91abad1fc5ee0f1f39 github_pki
+$ SSL_DIR=/etc/software/ssl \
+  GITHUB_USERS="bob,alice" \
+  GITHUB_TOKEN=398d6d326b546d70f9e1ef91abad1fc5ee0f1f39 \
+    github_pki
 ```
 
 
