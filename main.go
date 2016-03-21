@@ -82,6 +82,20 @@ func getUsers(client *github.Client, users []github.User) ([]github.User, error)
   return users, err
 }
 
+func writeAuthorizedKeys(authorizedKeys []string) (error) {
+  var err error
+
+  authorized_file := os.Getenv("AUTHORIZED_KEYS")
+  if authorized_file != "" {
+    logrus.Infof("Generating %v", authorized_file)
+
+    authorizedBytes := []byte(strings.Join(authorizedKeys, "\n"))
+    ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
+  }
+
+  return err
+}
+
 func dumpUserKeys(client *github.Client, users []github.User) (error) {
   var authorizedKeys []string
   var err error
@@ -92,19 +106,11 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
       logrus.Errorf("Failed to list keys for user %v", *user.Login)
     }
 
-      // Add to authorized_keys
-      authorized_file := os.Getenv("AUTHORIZED_KEYS")
-      if authorized_file != "" {
-        logrus.Infof("Generating %v", authorized_file)
-        for _, k := range keys {
-          authorizedKeys = append(authorizedKeys, *k.Key)
-        }
+    for _, k := range keys {
+      authorizedKeys = append(authorizedKeys, *k.Key)
+    }
 
-        authorizedBytes := []byte(strings.Join(authorizedKeys, "\n"))
-        ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
-      }
-
-      // And/or dump SSL key
+    // And/or dump SSL key
     for _, k := range keys {
       ssl_dir := os.Getenv("SSL_DIR")
       if ssl_dir != "" {
@@ -133,5 +139,7 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
       }
     }
   }
+
+  err = writeAuthorizedKeys(authorizedKeys)
   return err
 }
