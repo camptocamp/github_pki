@@ -118,12 +118,14 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
       ssl_dir := os.Getenv("SSL_DIR")
       if ssl_dir != "" {
         logrus.Infof("Dumping X509 keys to %v", ssl_dir)
+        os.MkdirAll(ssl_dir, 0750)
 
         tmpfile, err := ioutil.TempFile("", "ssh-ssl")
         if err != nil {
           logrus.Errorf("Failed to create tempfile")
         }
         defer os.Remove(tmpfile.Name())
+        tmpfile.Write([]byte(*k.Key))
 
         cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
 
@@ -133,7 +135,7 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
           logrus.Errorf("Failed to convert key to X509")
         }
 
-        ssl_keyfile := fmt.Sprintf("%s/%s.pem", ssl_dir, *k.ID)
+        ssl_keyfile := fmt.Sprintf("%s/%v_%v.pem", ssl_dir, *user.Login, *k.ID)
 
         err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
         if err != nil {
