@@ -118,7 +118,7 @@ func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
     }
 
     authorizedBytes := []byte(strings.Join(authorizedKeys, "\n") + "\n")
-    ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
+    err = ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
   }
 
   return err
