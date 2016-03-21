@@ -37,7 +37,14 @@ func main() {
   }
 
   err = writeAuthorizedKeys(keys)
+  if err != nil {
+    logrus.Errorf("Failed to write authorized keys file: %v", err)
+  }
+
   err = dumpSSLKeys(keys)
+  if err != nil {
+    logrus.Errorf("Failed to dump SSL keys: %v", err)
+  }
 }
 
 func getTeamUsers(client *github.Client) ([]github.User, error) {
