@@ -62,6 +62,8 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
         users = append(users, user)
       }
     }
+
+    return users, err
   }
 
   return users, err
