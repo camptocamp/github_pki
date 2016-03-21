@@ -31,7 +31,7 @@ func main() {
     logrus.Errorf("Failed to add individual users: %v", err)
   }
 
-  //getUserKeys(client, users)
+  dumpUserKeys(client, users)
 }
 
 func getTeamUsers(client *github.Client) ([]github.User, error) {
@@ -82,7 +82,7 @@ func getUsers(client *github.Client, users []github.User) ([]github.User, error)
   return users, err
 }
 
-func getUserKeys(client *github.Client, users []github.User) (error) {
+func dumpUserKeys(client *github.Client, users []github.User) (error) {
   var authorizedKeys []string
   var err error
 
@@ -92,38 +92,46 @@ func getUserKeys(client *github.Client, users []github.User) (error) {
       logrus.Errorf("Failed to list keys for user %v", *user.Login)
     }
 
-    for _, k := range keys {
       // Add to authorized_keys
-      authorizedKeys = append(authorizedKeys, *k.Key)
+      authorized_file := os.Getenv("AUTHORIZED_KEYS")
+      if authorized_file != "" {
+        logrus.Infof("Generating %v", authorized_file)
+        for _, k := range keys {
+          authorizedKeys = append(authorizedKeys, *k.Key)
+        }
+
+        authorizedBytes := []byte(strings.Join(authorizedKeys, "\n"))
+        ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
+      }
 
       // And/or dump SSL key
-      tmpfile, err := ioutil.TempFile("", "ssh-ssl")
-      if err != nil {
-        logrus.Errorf("Failed to create tempfile")
-      }
-      defer os.Remove(tmpfile.Name())
+    for _, k := range keys {
+      ssl_dir := os.Getenv("SSL_DIR")
+      if ssl_dir != "" {
+        logrus.Infof("Dumping X509 keys to %v", ssl_dir)
 
-      cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
+        tmpfile, err := ioutil.TempFile("", "ssh-ssl")
+        if err != nil {
+          logrus.Errorf("Failed to create tempfile")
+        }
+        defer os.Remove(tmpfile.Name())
 
-      // TODO: split stdout/stderr in case of errors
-      ssl_key, err := cmd.CombinedOutput()
-      if err != nil {
-        logrus.Errorf("Failed to convert key to X509")
-      }
+        cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
 
-      ssl_dir := "/tmp"
-      ssl_keyfile := fmt.Sprintf("%s/%s.pem", ssl_dir, *k.ID)
+        // TODO: split stdout/stderr in case of errors
+        ssl_key, err := cmd.CombinedOutput()
+        if err != nil {
+          logrus.Errorf("Failed to convert key to X509")
+        }
 
-      err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
-      if err != nil {
-        logrus.Errorf("Failed to write key to file")
+        ssl_keyfile := fmt.Sprintf("%s/%s.pem", ssl_dir, *k.ID)
+
+        err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
+        if err != nil {
+          logrus.Errorf("Failed to write key to file")
+        }
       }
     }
   }
   return err
 }
-
-func dumpAuthorizedKeys() () {
-}
-
-
