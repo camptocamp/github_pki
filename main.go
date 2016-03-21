@@ -89,7 +89,7 @@ func writeAuthorizedKeys(authorizedKeys []string) (error) {
   if authorized_file != "" {
     logrus.Infof("Generating %v", authorized_file)
 
-    authorizedBytes := []byte(strings.Join(authorizedKeys, "\n"))
+    authorizedBytes := []byte(strings.Join(authorizedKeys, "\n") + "\n")
     ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
   }
 
