@@ -31,7 +31,13 @@ func main() {
     logrus.Errorf("Failed to add individual users: %v", err)
   }
 
-  dumpUserKeys(client, users)
+  keys, err := getUserKeys(client, users)
+  if err != nil {
+    logrus.Errorf("Failed to retrieve user keys: %v", err)
+  }
+
+  err = writeAuthorizedKeys(keys)
+  err = dumpSSLKeys(keys)
 }
 
 func getTeamUsers(client *github.Client) ([]github.User, error) {
@@ -89,12 +95,20 @@ func getUsers(client *github.Client, users []github.User) ([]github.User, error)
   return users, err
 }
 
-func writeAuthorizedKeys(authorizedKeys []string) (error) {
+func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
   var err error
 
   authorized_file := os.Getenv("AUTHORIZED_KEYS")
   if authorized_file != "" {
     logrus.Infof("Generating %v", authorized_file)
+    var authorizedKeys []string
+
+    for user, keys := range all_keys {
+      for _, key := range keys {
+        authorizedLine := fmt.Sprintf("%v %v_%v", *key.Key, user, key.ID)
+        authorizedKeys = append(authorizedKeys, authorizedLine)
+      }
+    }
 
     authorizedBytes := []byte(strings.Join(authorizedKeys, "\n") + "\n")
     ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
@@ -103,9 +117,51 @@ func writeAuthorizedKeys(authorizedKeys []string) (error) {
   return err
 }
 
-func dumpUserKeys(client *github.Client, users []github.User) (error) {
-  var authorizedKeys []string
+func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
   var err error
+
+  // And/or dump SSL key
+  ssl_dir := os.Getenv("SSL_DIR")
+  if ssl_dir != "" {
+    logrus.Infof("Dumping X509 keys to %v", ssl_dir)
+    os.MkdirAll(ssl_dir, 0750)
+
+    for user, keys := range all_keys {
+      for _, key := range keys {
+        tmpfile, err := ioutil.TempFile("", "ssh-ssl")
+        if err != nil {
+          logrus.Errorf("Failed to create tempfile")
+        }
+        defer os.Remove(tmpfile.Name())
+        tmpfile.Write([]byte(*key.Key))
+
+        cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
+
+        // TODO: split stdout/stderr in case of errors
+        ssl_key, err := cmd.CombinedOutput()
+        if err != nil {
+          logrus.Errorf("Failed to convert key to X509")
+        }
+
+        ssl_keyfile := fmt.Sprintf("%s/%v_%v.pem", ssl_dir, user, *key.ID)
+
+        err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
+        if err != nil {
+          logrus.Errorf("Failed to write key to file")
+        }
+      }
+    }
+  }
+
+  return err
+}
+
+
+func getUserKeys(client *github.Client, users []github.User) (map[string][]github.Key, error) {
+  var err error
+
+  // Store keys in a map of slices
+  all_keys := make(map[string][]github.Key)
 
   for _, user := range users {
     logrus.Infof("Getting keys for user %v", *user.Login)
@@ -116,41 +172,9 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
     }
 
     for _, k := range keys {
-      authorizedLine := fmt.Sprintf("%v %v_%v", *k.Key, *user.Login, k.ID)
-      authorizedKeys = append(authorizedKeys, authorizedLine)
-    }
-
-    // And/or dump SSL key
-    ssl_dir := os.Getenv("SSL_DIR")
-    if ssl_dir != "" {
-      logrus.Infof("Dumping X509 keys to %v", ssl_dir)
-      os.MkdirAll(ssl_dir, 0750)
-      for _, k := range keys {
-        tmpfile, err := ioutil.TempFile("", "ssh-ssl")
-        if err != nil {
-          logrus.Errorf("Failed to create tempfile")
-        }
-        defer os.Remove(tmpfile.Name())
-        tmpfile.Write([]byte(*k.Key))
-
-        cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
-
-        // TODO: split stdout/stderr in case of errors
-        ssl_key, err := cmd.CombinedOutput()
-        if err != nil {
-          logrus.Errorf("Failed to convert key to X509")
-        }
-
-        ssl_keyfile := fmt.Sprintf("%s/%v_%v.pem", ssl_dir, *user.Login, *k.ID)
-
-        err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
-        if err != nil {
-          logrus.Errorf("Failed to write key to file")
-        }
-      }
+      all_keys[*user.Login] = append(all_keys[*user.Login], k)
     }
   }
 
-  err = writeAuthorizedKeys(authorizedKeys)
-  return err
+  return all_keys, err
 }
