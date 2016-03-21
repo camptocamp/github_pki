@@ -58,6 +58,7 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
     if gh_team == "" || *team.Name == gh_team {
       logrus.Infof("Adding users for team %v", *team.Name)
       for _, user := range gh_users {
+        logrus.Infof("Adding user %v", *user.Login)
         users = append(users, user)
       }
     }
