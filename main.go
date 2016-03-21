@@ -70,14 +70,18 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
 func getUsers(client *github.Client, users []github.User) ([]github.User, error) {
   var err error
 
-  for _, u := range strings.Split(os.Getenv("GITHUB_USERS"), ",") {
-    logrus.Infof("Adding individual user %v", u)
-    user, _, err := client.Users.Get(u)
-    if err != nil {
-      logrus.Errorf("Failed to find user %v", u)
-      return users, err
+  if os.Getenv("GITHUB_USERS") != "" {
+    individualUsers := strings.Split(os.Getenv("GITHUB_USERS"), ",")
+
+    for _, u := range individualUsers {
+      logrus.Infof("Adding individual user %v", u)
+      user, _, err := client.Users.Get(u)
+      if err != nil {
+        logrus.Errorf("Failed to find user %v", u)
+        return users, err
+      }
+      users = append(users, *user)
     }
-    users = append(users, *user)
   }
 
   return users, err
