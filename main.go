@@ -46,7 +46,7 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
 
   gh_teams, _, err := client.Organizations.ListTeams(gh_org, nil)
   if err != nil {
-    logrus.Errorf("Failed to list teams: %v", err)
+    logrus.Errorf("Failed to list teams for organization %v: %v", gh_org, err)
   }
 
   for _, team := range gh_teams {
