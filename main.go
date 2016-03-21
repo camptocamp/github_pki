@@ -155,7 +155,7 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
 
         err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
         if err != nil {
-          logrus.Errorf("Failed to write key to file")
+          logrus.Errorf("Failed to write key %v/%v to file: %v", user, *key.ID, err)
         }
       }
     }
