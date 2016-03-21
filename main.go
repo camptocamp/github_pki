@@ -28,7 +28,7 @@ func main() {
 
   users, err = getUsers(client, users)
   if err != nil {
-    logrus.Errorf("Failed to add individual users")
+    logrus.Errorf("Failed to add individual users: %v", err)
   }
 
   //getUserKeys(client, users)
@@ -52,7 +52,7 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
   for _, team := range gh_teams {
     gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
     if err != nil {
-      logrus.Errorf("Failed to list team members")
+      logrus.Errorf("Failed to list team members for team %v: %v", *team.ID, err)
     }
 
     if gh_team == "" || *team.Name == gh_team {
@@ -70,9 +70,11 @@ func getUsers(client *github.Client, users []github.User) ([]github.User, error)
   var err error
 
   for _, u := range strings.Split(os.Getenv("GITHUB_USERS"), ",") {
+    logrus.Infof("Adding individual user %v", u)
     user, _, err := client.Users.Get(u)
     if err != nil {
       logrus.Errorf("Failed to find user %v", u)
+      return users, err
     }
     users = append(users, *user)
   }
