@@ -101,6 +101,8 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
   var err error
 
   for _, user := range users {
+    logrus.Infof("Getting keys for user %v", *user.Login)
+
     keys, _, err := client.Users.ListKeys(*user.Login, nil)
     if err != nil {
       logrus.Errorf("Failed to list keys for user %v", *user.Login)
