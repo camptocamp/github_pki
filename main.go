@@ -135,12 +135,13 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
         defer os.Remove(tmpfile.Name())
         tmpfile.Write([]byte(*key.Key))
 
+        logrus.Infof("Converting key %v/%v to X509", user, *key.ID)
         cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
 
         // TODO: split stdout/stderr in case of errors
         ssl_key, err := cmd.CombinedOutput()
         if err != nil {
-          logrus.Errorf("Failed to convert key to X509")
+          logrus.Errorf("Failed to convert key %v/%v to X509", user, *key.ID)
         }
 
         ssl_keyfile := fmt.Sprintf("%s/%v_%v.pem", ssl_dir, user, *key.ID)
