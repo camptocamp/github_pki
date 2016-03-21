@@ -105,7 +105,7 @@ func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
 
     for user, keys := range all_keys {
       for _, key := range keys {
-        authorizedLine := fmt.Sprintf("%v %v_%v", *key.Key, user, key.ID)
+        authorizedLine := fmt.Sprintf("%v %v_%v", *key.Key, user, *key.ID)
         authorizedKeys = append(authorizedKeys, authorizedLine)
       }
     }
