@@ -33,7 +33,7 @@ $ SSL_DIR=/etc/software/ssl \
 
 ### GITHUB_TOKEN
 
-The Github token to use to connect to the Github API. It must allow two actions:
+The GitHub token used to connect to the GitHub API. It must allow two actions:
 
 - read:org
 - read:public_key
@@ -44,7 +44,7 @@ An organization from which to select users to authorize.
 
 ### GITHUB_TEAM
 
-A team if the provided organization from which to select users to authorize.
+A team of the provided organization from which to select users to authorize.
 If not specified, all users in `GITHUB_ORG` will be authorized.
 
 ### GITHUB_USERS
