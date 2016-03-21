@@ -107,7 +107,8 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
     }
 
     for _, k := range keys {
-      authorizedKeys = append(authorizedKeys, *k.Key)
+      authorizedLine := fmt.Sprintf("%v %v_%v", *k.Key, *user.Login, k.ID)
+      authorizedKeys = append(authorizedKeys, authorizedLine)
     }
 
     // And/or dump SSL key
