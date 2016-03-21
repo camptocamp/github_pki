@@ -121,12 +121,11 @@ func dumpUserKeys(client *github.Client, users []github.User) (error) {
     }
 
     // And/or dump SSL key
-    for _, k := range keys {
-      ssl_dir := os.Getenv("SSL_DIR")
-      if ssl_dir != "" {
-        logrus.Infof("Dumping X509 keys to %v", ssl_dir)
-        os.MkdirAll(ssl_dir, 0750)
-
+    ssl_dir := os.Getenv("SSL_DIR")
+    if ssl_dir != "" {
+      logrus.Infof("Dumping X509 keys to %v", ssl_dir)
+      os.MkdirAll(ssl_dir, 0750)
+      for _, k := range keys {
         tmpfile, err := ioutil.TempFile("", "ssh-ssl")
         if err != nil {
           logrus.Errorf("Failed to create tempfile")
