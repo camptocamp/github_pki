@@ -1,7 +1,8 @@
 GitHub PKI
 ==========
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/raphink/github_pki.svg)](https://hub.docker.com/r/raphink/github_pki/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/camptocamp/github_pki.svg)](https://hub.docker.com/r/camptocamp/github_pki/)
+[![By Camptocamp](https://img.shields.io/badge/by-camptocamp-fb7047.svg)](http://www.camptocamp.com)
 
 
 github_pki is a command that can be used to retrieve and dump SSH keys from GitHub.
@@ -33,7 +34,7 @@ $ SSL_DIR=/etc/software/ssl \
 
 ### GITHUB_TOKEN
 
-The Github token to use to connect to the Github API. It must allow two actions:
+The GitHub token used to connect to the GitHub API. It must allow two actions:
 
 - read:org
 - read:public_key
@@ -44,7 +45,7 @@ An organization from which to select users to authorize.
 
 ### GITHUB_TEAM
 
-A team if the provided organization from which to select users to authorize.
+A team of the provided organization from which to select users to authorize.
 If not specified, all users in `GITHUB_ORG` will be authorized.
 
 ### GITHUB_USERS
