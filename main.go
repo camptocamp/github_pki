@@ -22,29 +22,19 @@ func main() {
 
   // Get users from teams
   users, err := getTeamUsers(client)
-  if err != nil {
-    logrus.Errorf("Failed to get team users")
-  }
+  checkErr(err, "Failed to get team users: %v")
 
   users, err = getUsers(client, users)
-  if err != nil {
-    logrus.Errorf("Failed to add individual users: %v", err)
-  }
+  checkErr(err, "Failed to add individual users: %v")
 
   keys, err := getUserKeys(client, users)
-  if err != nil {
-    logrus.Errorf("Failed to retrieve user keys: %v", err)
-  }
+  checkErr(err, "Failed to retrieve user keys: %v")
 
   err = writeAuthorizedKeys(keys)
-  if err != nil {
-    logrus.Errorf("Failed to write authorized keys file: %v", err)
-  }
+  checkErr(err, "Failed to write authorized keys file: %v")
 
   err = dumpSSLKeys(keys)
-  if err != nil {
-    logrus.Errorf("Failed to dump SSL keys: %v", err)
-  }
+  checkErr(err, "Failed to dump SSL keys: %v")
 }
 
 func getTeamUsers(client *github.Client) ([]github.User, error) {
@@ -58,15 +48,11 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
   }
 
   gh_teams, _, err := client.Organizations.ListTeams(gh_org, nil)
-  if err != nil {
-    logrus.Errorf("Failed to list teams for organization %v: %v", gh_org, err)
-  }
+  checkErr(err, "Failed to list teams for organization "+gh_org+": %v")
 
   for _, team := range gh_teams {
     gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
-    if err != nil {
-      logrus.Errorf("Failed to list team members for team %v: %v", *team.ID, err)
-    }
+    checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
 
     if gh_team == "" || *team.Name == gh_team {
       logrus.Infof("Adding users for team %v", *team.Name)
@@ -136,9 +122,8 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
     for user, keys := range all_keys {
       for _, key := range keys {
         tmpfile, err := ioutil.TempFile("", "ssh-ssl")
-        if err != nil {
-          logrus.Errorf("Failed to create tempfile")
-        }
+        checkErr(err, "Failed to create tempfile: %v")
+
         defer os.Remove(tmpfile.Name())
         tmpfile.Write([]byte(*key.Key))
 
@@ -147,16 +132,13 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
 
         // TODO: split stdout/stderr in case of errors
         ssl_key, err := cmd.CombinedOutput()
-        if err != nil {
-          logrus.Errorf("Failed to convert key %v/%v to X509", user, *key.ID)
-        }
+        keyStr := fmt.Sprintf("key %v/%v", user, *key.ID)
+        checkErr(err, "Failed to convert "+keyStr+" to X509: %v")
 
         ssl_keyfile := fmt.Sprintf("%s/%v_%v.pem", ssl_dir, user, *key.ID)
 
         err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
-        if err != nil {
-          logrus.Errorf("Failed to write key %v/%v to file: %v", user, *key.ID, err)
-        }
+        checkErr(err, "Failed to write "+keyStr+" to file: %v")
       }
     }
   }
@@ -175,9 +157,7 @@ func getUserKeys(client *github.Client, users []github.User) (map[string][]githu
     logrus.Infof("Getting keys for user %v", *user.Login)
 
     keys, _, err := client.Users.ListKeys(*user.Login, nil)
-    if err != nil {
-      logrus.Errorf("Failed to list keys for user %v", *user.Login)
-    }
+    checkErr(err, "Failed to list keys for user "+*user.Login)
 
     for _, k := range keys {
       all_keys[*user.Login] = append(all_keys[*user.Login], k)
@@ -185,4 +165,10 @@ func getUserKeys(client *github.Client, users []github.User) (map[string][]githu
   }
 
   return all_keys, err
+}
+
+func checkErr(err error, msg string) {
+  if err != nil {
+    logrus.Errorf(msg, err)
+  }
 }
