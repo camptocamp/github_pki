@@ -1,7 +1,8 @@
 GitHub PKI
 ==========
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/raphink/github_pki.svg)](https://hub.docker.com/r/raphink/github_pki/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/camptocamp/github_pki.svg)](https://hub.docker.com/r/camptocamp/github_pki/)
+[![By Camptocamp](https://img.shields.io/badge/by-camptocamp-fb7047.svg)](http://www.camptocamp.com)
 
 
 github_pki is a command that can be used to retrieve and dump SSH keys from GitHub.
