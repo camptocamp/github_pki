@@ -120,6 +120,8 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
     os.MkdirAll(ssl_dir, 0750)
 
     for user, keys := range all_keys {
+      var sslKeys []string
+
       for _, key := range keys {
         tmpfile, err := ioutil.TempFile("", "ssh-ssl")
         checkErr(err, "Failed to create tempfile: %v")
@@ -133,13 +135,18 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
         // TODO: split stdout/stderr in case of errors
         ssl_key, err := cmd.CombinedOutput()
         keyStr := fmt.Sprintf("key %v/%v", user, *key.ID)
-        checkErr(err, "Failed to convert "+keyStr+" to X509: %v")
-
-        ssl_keyfile := fmt.Sprintf("%s/%v_%v.pem", ssl_dir, user, *key.ID)
-
-        err = ioutil.WriteFile(ssl_keyfile, ssl_key, 0644)
-        checkErr(err, "Failed to write "+keyStr+" to file: %v")
+        if err != nil {
+          logrus.Errorf("Failed to convert "+keyStr+" to X509: %v")
+        } else {
+          sslKeys = append(sslKeys, string(ssl_key))
+        }
       }
+
+      ssl_keyfile := fmt.Sprintf("%s/%v.pem", ssl_dir, user)
+
+      keys := []byte(strings.Join(sslKeys, "\n")+"\n")
+      err = ioutil.WriteFile(ssl_keyfile, keys, 0644)
+      checkErr(err, "Failed to write key file: %v")
     }
   }
 
