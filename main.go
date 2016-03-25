@@ -81,13 +81,23 @@ func getUsers(client *github.Client, users []User) ([]User, error) {
     individualUsers := strings.Split(os.Getenv("GITHUB_USERS"), ",")
 
     for _, u := range individualUsers {
-      logrus.Infof("Adding individual user %v", u)
+      user := User{}
+
+      if strings.Contains(u, "=") {
+        split_u := strings.Split(u, "=")
+        u = split_u[0]
+        user.Alias = &split_u[1]
+        logrus.Infof("Adding individual user %v as %v", split_u[0], split_u[1])
+      } else {
+        logrus.Infof("Adding individual user %v", u)
+      }
+
       gh_user, _, err := client.Users.Get(u)
       if err != nil {
         logrus.Errorf("Failed to find user %v", u)
         return users, err
       }
-      user := User{gh_user, nil}
+      user.GH = gh_user
       users = append(users, user)
     }
   }
@@ -173,8 +183,15 @@ func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, 
     keys, _, err := client.Users.ListKeys(*user.GH.Login, nil)
     checkErr(err, "Failed to list keys for user "+*user.GH.Login)
 
+    var login string
+    if user.Alias != nil {
+      login = *user.Alias
+    } else {
+      login = *user.GH.Login
+    }
+
     for _, k := range keys {
-      all_keys[*user.GH.Login] = append(all_keys[*user.GH.Login], k)
+      all_keys[login] = append(all_keys[login], k)
     }
   }
 
