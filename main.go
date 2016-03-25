@@ -12,7 +12,7 @@ import (
 )
 
 type User struct {
-  GH     *github.User
+  Login  *string
   Alias  *string
 }
 
@@ -63,7 +63,7 @@ func getTeamUsers(client *github.Client) ([]User, error) {
       logrus.Infof("Adding users for team %v", *team.Name)
       for _, gh_user := range gh_users {
         logrus.Infof("Adding user %v", *gh_user.Login)
-        user := User{&gh_user, nil}
+        user := User{gh_user.Login, nil}
         users = append(users, user)
       }
     }
@@ -97,7 +97,7 @@ func getUsers(client *github.Client, users []User) ([]User, error) {
         logrus.Errorf("Failed to find user %v", u)
         return users, err
       }
-      user.GH = gh_user
+      user.Login = gh_user.Login
       users = append(users, user)
     }
   }
@@ -153,7 +153,7 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
         ssl_key, err := cmd.CombinedOutput()
         keyStr := fmt.Sprintf("key %v/%v", user, *key.ID)
         if err != nil {
-          logrus.Errorf("Failed to convert "+keyStr+" to X509: %v")
+          logrus.Errorf("Failed to convert "+keyStr+" to X509: %v", err)
         } else {
           sslKeys = append(sslKeys, string(ssl_key))
         }
@@ -178,16 +178,16 @@ func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, 
   all_keys := make(map[string][]github.Key)
 
   for _, user := range users {
-    logrus.Infof("Getting keys for user %v", *user.GH.Login)
+    logrus.Infof("Getting keys for user %v", *user.Login)
 
-    keys, _, err := client.Users.ListKeys(*user.GH.Login, nil)
-    checkErr(err, "Failed to list keys for user "+*user.GH.Login)
+    keys, _, err := client.Users.ListKeys(*user.Login, nil)
+    checkErr(err, "Failed to list keys for user "+*user.Login)
 
     var login string
     if user.Alias != nil {
       login = *user.Alias
     } else {
-      login = *user.GH.Login
+      login = *user.Login
     }
 
     for _, k := range keys {
