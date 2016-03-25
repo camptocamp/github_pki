@@ -11,6 +11,11 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+type User struct {
+  GH     *github.User
+  Alias  *string
+}
+
 func main() {
   gh_token := os.Getenv("GITHUB_TOKEN")
   ts := oauth2.StaticTokenSource(
@@ -37,8 +42,8 @@ func main() {
   checkErr(err, "Failed to dump SSL keys: %v")
 }
 
-func getTeamUsers(client *github.Client) ([]github.User, error) {
-  var users []github.User
+func getTeamUsers(client *github.Client) ([]User, error) {
+  var users []User
 
   gh_org := os.Getenv("GITHUB_ORG")
   gh_team := os.Getenv("GITHUB_TEAM")
@@ -56,8 +61,9 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
 
     if gh_team == "" || *team.Name == gh_team {
       logrus.Infof("Adding users for team %v", *team.Name)
-      for _, user := range gh_users {
-        logrus.Infof("Adding user %v", *user.Login)
+      for _, gh_user := range gh_users {
+        logrus.Infof("Adding user %v", *gh_user.Login)
+        user := User{&gh_user, nil}
         users = append(users, user)
       }
     }
@@ -68,7 +74,7 @@ func getTeamUsers(client *github.Client) ([]github.User, error) {
   return users, err
 }
 
-func getUsers(client *github.Client, users []github.User) ([]github.User, error) {
+func getUsers(client *github.Client, users []User) ([]User, error) {
   var err error
 
   if os.Getenv("GITHUB_USERS") != "" {
@@ -76,12 +82,13 @@ func getUsers(client *github.Client, users []github.User) ([]github.User, error)
 
     for _, u := range individualUsers {
       logrus.Infof("Adding individual user %v", u)
-      user, _, err := client.Users.Get(u)
+      gh_user, _, err := client.Users.Get(u)
       if err != nil {
         logrus.Errorf("Failed to find user %v", u)
         return users, err
       }
-      users = append(users, *user)
+      user := User{gh_user, nil}
+      users = append(users, user)
     }
   }
 
@@ -154,20 +161,20 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
 }
 
 
-func getUserKeys(client *github.Client, users []github.User) (map[string][]github.Key, error) {
+func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, error) {
   var err error
 
   // Store keys in a map of slices
   all_keys := make(map[string][]github.Key)
 
   for _, user := range users {
-    logrus.Infof("Getting keys for user %v", *user.Login)
+    logrus.Infof("Getting keys for user %v", *user.GH.Login)
 
-    keys, _, err := client.Users.ListKeys(*user.Login, nil)
-    checkErr(err, "Failed to list keys for user "+*user.Login)
+    keys, _, err := client.Users.ListKeys(*user.GH.Login, nil)
+    checkErr(err, "Failed to list keys for user "+*user.GH.Login)
 
     for _, k := range keys {
-      all_keys[*user.Login] = append(all_keys[*user.Login], k)
+      all_keys[*user.GH.Login] = append(all_keys[*user.GH.Login], k)
     }
   }
 
