@@ -46,29 +46,36 @@ func getTeamUsers(client *github.Client) ([]User, error) {
   var users []User
 
   gh_org := os.Getenv("GITHUB_ORG")
-  gh_team := os.Getenv("GITHUB_TEAM")
+  gh_teams := strings.Split(os.Getenv("GITHUB_TEAM"), ",")
 
   if gh_org == "" {
     return users, nil
   }
 
-  gh_teams, _, err := client.Organizations.ListTeams(gh_org, nil)
+  teams, _, err := client.Organizations.ListTeams(gh_org, nil)
   checkErr(err, "Failed to list teams for organization "+gh_org+": %v")
 
-  for _, team := range gh_teams {
+  var found_teams []string
+
+  for _, team := range teams {
     gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
     checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
 
-    if gh_team == "" || *team.Name == gh_team {
-      logrus.Infof("Adding users for team %v", *team.Name)
-      for _, gh_user := range gh_users {
-        logrus.Infof("Adding user %v", *gh_user.Login)
-        user := User{gh_user.Login, nil}
-        users = append(users, user)
+    for _, t := range gh_teams {
+      if os.Getenv("GITHUB_TEAM") == "" || *team.Name == t {
+        logrus.Infof("Adding users for team %v", *team.Name)
+        for _, gh_user := range gh_users {
+          logrus.Infof("Adding user %v", *gh_user.Login)
+          user := User{gh_user.Login, nil}
+          users = append(users, user)
+        }
+        found_teams = append(found_teams, t)
       }
     }
 
-    return users, err
+    if len(found_teams) == len(gh_teams) {
+      return users, err
+    }
   }
 
   return users, err

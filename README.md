@@ -48,6 +48,8 @@ An organization from which to select users to authorize.
 A team of the provided organization from which to select users to authorize.
 If not specified, all users in `GITHUB_ORG` will be authorized.
 
+Multiple teams can be specified, separated by commas.
+
 ### GITHUB_USERS
 
 A list of GitHub users to authorize.
