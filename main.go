@@ -52,17 +52,31 @@ func getTeamUsers(client *github.Client) ([]User, error) {
     return users, nil
   }
 
-  teams, _, err := client.Organizations.ListTeams(gh_org, nil)
-  checkErr(err, "Failed to list teams for organization "+gh_org+": %v")
+  var teams []github.Team
+
+  var err error
+
+  page := 1
+  for page != 0 {
+    opt := &github.ListOptions{
+      PerPage: 100,
+      Page: page,
+    }
+    ts, resp, err := client.Organizations.ListTeams(gh_org, opt)
+    checkErr(err, "Failed to list teams for organization "+gh_org+": %v")
+    page = resp.NextPage
+    for _, t := range ts {
+      teams = append(teams, t)
+    }
+  }
 
   var found_teams []string
 
   for _, team := range teams {
-    gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
-    checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
-
     for _, t := range gh_teams {
       if os.Getenv("GITHUB_TEAM") == "" || *team.Name == t {
+        gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
+        checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
         logrus.Infof("Adding users for team %v", *team.Name)
         for _, gh_user := range gh_users {
           logrus.Infof("Adding user %v", *gh_user.Login)
