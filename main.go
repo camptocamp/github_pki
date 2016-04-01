@@ -42,19 +42,15 @@ func main() {
   checkErr(err, "Failed to dump SSL keys: %v")
 }
 
-func getTeamUsers(client *github.Client) ([]User, error) {
-  var users []User
-
+func getTeamUsers(client *github.Client) (users []User, err error) {
   gh_org := os.Getenv("GITHUB_ORG")
   gh_teams := strings.Split(os.Getenv("GITHUB_TEAM"), ",")
 
   if gh_org == "" {
-    return users, nil
+    return
   }
 
   var teams []github.Team
-
-  var err error
 
   page := 1
   for page != 0 {
@@ -88,11 +84,11 @@ func getTeamUsers(client *github.Client) ([]User, error) {
     }
 
     if len(found_teams) == len(gh_teams) {
-      return users, err
+      return
     }
   }
 
-  return users, err
+  return
 }
 
 func getUsers(client *github.Client, users []User) ([]User, error) {
@@ -126,9 +122,7 @@ func getUsers(client *github.Client, users []User) ([]User, error) {
   return users, err
 }
 
-func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
-  var err error
-
+func writeAuthorizedKeys(all_keys map[string][]github.Key) (err error) {
   authorized_file := os.Getenv("AUTHORIZED_KEYS")
   if authorized_file != "" {
     logrus.Infof("Generating %v", authorized_file)
@@ -145,12 +139,10 @@ func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
     err = ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
   }
 
-  return err
+  return
 }
 
-func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
-  var err error
-
+func dumpSSLKeys(all_keys map[string][]github.Key) (err error) {
   // And/or dump SSL key
   ssl_dir := os.Getenv("SSL_DIR")
   if ssl_dir != "" {
@@ -188,16 +180,11 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
     }
   }
 
-  return err
+  return
 }
 
 
-func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, error) {
-  var err error
-
-  // Store keys in a map of slices
-  all_keys := make(map[string][]github.Key)
-
+func getUserKeys(client *github.Client, users []User) (all_keys map[string][]github.Key, err error) {
   for _, user := range users {
     logrus.Infof("Getting keys for user %v", *user.Login)
 
@@ -216,7 +203,7 @@ func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, 
     }
   }
 
-  return all_keys, err
+  return
 }
 
 func checkErr(err error, msg string) {
