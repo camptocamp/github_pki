@@ -201,6 +201,7 @@ func (p *GitHubPki) dumpSSLKeys() (err error) {
 
 
 func (p *GitHubPki) getUserKeys() (err error) {
+  p.Keys = make(map[string][]github.Key)
   for _, user := range p.Users {
     log.Infof("Getting keys for user %v", *user.Login)
 
