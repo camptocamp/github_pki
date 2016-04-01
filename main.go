@@ -109,7 +109,7 @@ func (p *GitHubPki) getTeamUsers() (err error) {
         for _, gh_user := range gh_users {
           log.Infof("Adding user %v", *gh_user.Login)
           user := User{gh_user.Login, nil}
-          p.Users = append(p.Users, user)
+          p.addUser(user)
         }
         found_teams = append(found_teams, t)
       }
@@ -142,8 +142,27 @@ func (p *GitHubPki) getUsers() (err error) {
       return err
     }
     user.Login = gh_user.Login
-    p.Users = append(p.Users, user)
+    p.addUser(user)
   }
+
+  return
+}
+
+func (p *GitHubPki) addUser(user User) (err error) {
+  for _, u := range p.Users {
+    if *u.Login == *user.Login {
+      if u.Alias == nil && user.Alias == nil {
+        log.Infof("Not adding duplicate user %v", *user.Login)
+        return
+      } else if u.Alias == nil || user.Alias == nil {
+        // one of them is set, so we're good
+      } else if *u.Alias == *user.Alias {
+        log.Infof("Not adding duplicate user %v as %v", *user.Login, *user.Alias)
+        return
+      }
+    }
+  }
+  p.Users = append(p.Users, user)
 
   return
 }
