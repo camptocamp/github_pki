@@ -8,7 +8,7 @@ import (
   "fmt"
   "golang.org/x/oauth2"
   "github.com/google/go-github/github"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 type User struct {
@@ -16,45 +16,74 @@ type User struct {
   Alias  *string
 }
 
+type Environment struct {
+  Token          string
+  Org            string
+  Teams          []string
+  Users          []string
+  AuthorizedKeys string
+  SSLDir         string
+}
+
+type GitHubPki struct {
+  Env         *Environment
+  Client      *github.Client
+  Users       []User
+  Keys        map[string][]github.Key
+}
+
 func main() {
-  gh_token := os.Getenv("GITHUB_TOKEN")
+  pki := GitHubPki{}
+  pki.getEnv()
+
   ts := oauth2.StaticTokenSource(
-    &oauth2.Token{AccessToken: gh_token},
+    &oauth2.Token{AccessToken: pki.Env.Token},
   )
   tc := oauth2.NewClient(oauth2.NoContext, ts)
 
-  client := github.NewClient(tc)
+  pki.Client = github.NewClient(tc)
 
   // Get users from teams
-  users, err := getTeamUsers(client)
+  err := pki.getTeamUsers()
   checkErr(err, "Failed to get team users: %v")
 
-  users, err = getUsers(client, users)
+  err = pki.getUsers()
   checkErr(err, "Failed to add individual users: %v")
 
-  keys, err := getUserKeys(client, users)
+  err = pki.getUserKeys()
   checkErr(err, "Failed to retrieve user keys: %v")
 
-  err = writeAuthorizedKeys(keys)
+  err = pki.writeAuthorizedKeys()
   checkErr(err, "Failed to write authorized keys file: %v")
 
-  err = dumpSSLKeys(keys)
+  err = pki.dumpSSLKeys()
   checkErr(err, "Failed to dump SSL keys: %v")
 }
 
-func getTeamUsers(client *github.Client) ([]User, error) {
-  var users []User
+func commaSplit(s string) (sl []string, err error) {
+  f := func(c rune) bool {
+    return c == ','
+  }
+  sl = strings.FieldsFunc(s, f)
+  return
+}
 
-  gh_org := os.Getenv("GITHUB_ORG")
-  gh_teams := strings.Split(os.Getenv("GITHUB_TEAM"), ",")
+func (p *GitHubPki) getEnv() {
+  p.Env = &Environment{}
+  p.Env.Token = os.Getenv("GITHUB_TOKEN")
+  p.Env.Org = os.Getenv("GITHUB_ORG")
+  p.Env.Teams, _ = commaSplit(os.Getenv("GITHUB_TEAM"))
+  p.Env.Users, _ = commaSplit(os.Getenv("GITHUB_USERS"))
+  p.Env.AuthorizedKeys = os.Getenv("AUTHORIZED_KEYS")
+  p.Env.SSLDir = os.Getenv("SSL_DIR")
+}
 
-  if gh_org == "" {
-    return users, nil
+func (p *GitHubPki) getTeamUsers() (err error) {
+  if p.Env.Org == "" {
+    return
   }
 
   var teams []github.Team
-
-  var err error
 
   page := 1
   for page != 0 {
@@ -62,8 +91,8 @@ func getTeamUsers(client *github.Client) ([]User, error) {
       PerPage: 100,
       Page: page,
     }
-    ts, resp, err := client.Organizations.ListTeams(gh_org, opt)
-    checkErr(err, "Failed to list teams for organization "+gh_org+": %v")
+    ts, resp, err := p.Client.Organizations.ListTeams(p.Env.Org, opt)
+    checkErr(err, "Failed to list teams for organization "+p.Env.Org+": %v")
     page = resp.NextPage
     for _, t := range ts {
       teams = append(teams, t)
@@ -73,68 +102,78 @@ func getTeamUsers(client *github.Client) ([]User, error) {
   var found_teams []string
 
   for _, team := range teams {
-    for _, t := range gh_teams {
-      if os.Getenv("GITHUB_TEAM") == "" || *team.Name == t {
-        gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
+    for _, t := range p.Env.Teams {
+      if *team.Name == t {
+        gh_users, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
         checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
-        logrus.Infof("Adding users for team %v", *team.Name)
+        log.Infof("Adding users for team %v", *team.Name)
         for _, gh_user := range gh_users {
-          logrus.Infof("Adding user %v", *gh_user.Login)
+          log.Infof("Adding user %v", *gh_user.Login)
           user := User{gh_user.Login, nil}
-          users = append(users, user)
+          p.addUser(user)
         }
         found_teams = append(found_teams, t)
       }
     }
 
-    if len(found_teams) == len(gh_teams) {
-      return users, err
+    if len(found_teams) == len(p.Env.Teams) {
+      return
     }
   }
 
-  return users, err
+  return
 }
 
-func getUsers(client *github.Client, users []User) ([]User, error) {
-  var err error
+func (p *GitHubPki) getUsers() (err error) {
+  for _, u := range p.Env.Users {
+    user := User{}
 
-  if os.Getenv("GITHUB_USERS") != "" {
-    individualUsers := strings.Split(os.Getenv("GITHUB_USERS"), ",")
-
-    for _, u := range individualUsers {
-      user := User{}
-
-      if strings.Contains(u, "=") {
-        split_u := strings.Split(u, "=")
-        u = split_u[0]
-        user.Alias = &split_u[1]
-        logrus.Infof("Adding individual user %v as %v", split_u[0], split_u[1])
-      } else {
-        logrus.Infof("Adding individual user %v", u)
-      }
-
-      gh_user, _, err := client.Users.Get(u)
-      if err != nil {
-        logrus.Errorf("Failed to find user %v", u)
-        return users, err
-      }
-      user.Login = gh_user.Login
-      users = append(users, user)
+    if strings.Contains(u, "=") {
+      split_u := strings.Split(u, "=")
+      u = split_u[0]
+      user.Alias = &split_u[1]
+      log.Infof("Adding individual user %v as %v", split_u[0], split_u[1])
+    } else {
+      log.Infof("Adding individual user %v", u)
     }
+
+    gh_user, _, err := p.Client.Users.Get(u)
+    if err != nil {
+      log.Errorf("Failed to find user %v", u)
+      return err
+    }
+    user.Login = gh_user.Login
+    p.addUser(user)
   }
 
-  return users, err
+  return
 }
 
-func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
-  var err error
+func (p *GitHubPki) addUser(user User) (err error) {
+  for _, u := range p.Users {
+    if *u.Login == *user.Login {
+      if u.Alias == nil && user.Alias == nil {
+        log.Infof("Not adding duplicate user %v", *user.Login)
+        return
+      } else if u.Alias == nil || user.Alias == nil {
+        // one of them is set, so we're good
+      } else if *u.Alias == *user.Alias {
+        log.Infof("Not adding duplicate user %v as %v", *user.Login, *user.Alias)
+        return
+      }
+    }
+  }
+  p.Users = append(p.Users, user)
 
-  authorized_file := os.Getenv("AUTHORIZED_KEYS")
-  if authorized_file != "" {
-    logrus.Infof("Generating %v", authorized_file)
+  return
+}
+
+func (p *GitHubPki) writeAuthorizedKeys() (err error) {
+  if p.Env.AuthorizedKeys != "" {
+    log.Infof("Generating %v", p.Env.AuthorizedKeys)
     var authorizedKeys []string
 
-    for user, keys := range all_keys {
+    for user, keys := range p.Keys {
       for _, key := range keys {
         authorizedLine := fmt.Sprintf("%v %v_%v", *key.Key, user, *key.ID)
         authorizedKeys = append(authorizedKeys, authorizedLine)
@@ -142,22 +181,19 @@ func writeAuthorizedKeys(all_keys map[string][]github.Key) (error) {
     }
 
     authorizedBytes := []byte(strings.Join(authorizedKeys, "\n") + "\n")
-    err = ioutil.WriteFile(authorized_file, authorizedBytes, 0644)
+    err = ioutil.WriteFile(p.Env.AuthorizedKeys, authorizedBytes, 0644)
   }
 
-  return err
+  return
 }
 
-func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
-  var err error
-
+func (p *GitHubPki) dumpSSLKeys() (err error) {
   // And/or dump SSL key
-  ssl_dir := os.Getenv("SSL_DIR")
-  if ssl_dir != "" {
-    logrus.Infof("Dumping X509 keys to %v", ssl_dir)
-    os.MkdirAll(ssl_dir, 0750)
+  if p.Env.SSLDir != "" {
+    log.Infof("Dumping X509 keys to %v", p.Env.SSLDir)
+    os.MkdirAll(p.Env.SSLDir, 0750)
 
-    for user, keys := range all_keys {
+    for user, keys := range p.Keys {
       var sslKeys []string
 
       for _, key := range keys {
@@ -167,20 +203,20 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
         defer os.Remove(tmpfile.Name())
         tmpfile.Write([]byte(*key.Key))
 
-        logrus.Infof("Converting key %v/%v to X509", user, *key.ID)
+        log.Infof("Converting key %v/%v to X509", user, *key.ID)
         cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
 
         // TODO: split stdout/stderr in case of errors
         ssl_key, err := cmd.CombinedOutput()
         keyStr := fmt.Sprintf("key %v/%v", user, *key.ID)
         if err != nil {
-          logrus.Errorf("Failed to convert "+keyStr+" to X509: %v", err)
+          log.Errorf("Failed to convert "+keyStr+" to X509: %v", err)
         } else {
           sslKeys = append(sslKeys, string(ssl_key))
         }
       }
 
-      ssl_keyfile := fmt.Sprintf("%s/%v.pem", ssl_dir, user)
+      ssl_keyfile := fmt.Sprintf("%s/%v.pem", p.Env.SSLDir, user)
 
       keys := []byte(strings.Join(sslKeys, "\n")+"\n")
       err = ioutil.WriteFile(ssl_keyfile, keys, 0644)
@@ -188,20 +224,16 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (error) {
     }
   }
 
-  return err
+  return
 }
 
 
-func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, error) {
-  var err error
+func (p *GitHubPki) getUserKeys() (err error) {
+  p.Keys = make(map[string][]github.Key)
+  for _, user := range p.Users {
+    log.Infof("Getting keys for user %v", *user.Login)
 
-  // Store keys in a map of slices
-  all_keys := make(map[string][]github.Key)
-
-  for _, user := range users {
-    logrus.Infof("Getting keys for user %v", *user.Login)
-
-    keys, _, err := client.Users.ListKeys(*user.Login, nil)
+    keys, _, err := p.Client.Users.ListKeys(*user.Login, nil)
     checkErr(err, "Failed to list keys for user "+*user.Login)
 
     var login string
@@ -212,15 +244,15 @@ func getUserKeys(client *github.Client, users []User) (map[string][]github.Key, 
     }
 
     for _, k := range keys {
-      all_keys[login] = append(all_keys[login], k)
+      p.Keys[login] = append(p.Keys[login], k)
     }
   }
 
-  return all_keys, err
+  return
 }
 
 func checkErr(err error, msg string) {
   if err != nil {
-    logrus.Errorf(msg, err)
+    log.Errorf(msg, err)
   }
 }
