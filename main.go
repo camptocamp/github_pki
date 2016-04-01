@@ -75,6 +75,7 @@ func (p *GitHubPki) getEnv() {
   p.Env.Teams, _ = commaSplit(os.Getenv("GITHUB_TEAM"))
   p.Env.Users, _ = commaSplit(os.Getenv("GITHUB_USERS"))
   p.Env.AuthorizedKeys = os.Getenv("AUTHORIZED_KEYS")
+  p.Env.SSLDir = os.Getenv("SSL_DIR")
 }
 
 func (p *GitHubPki) getTeamUsers() (err error) {
