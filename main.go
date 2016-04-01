@@ -60,12 +60,20 @@ func main() {
   checkErr(err, "Failed to dump SSL keys: %v")
 }
 
+func commaSplit(s string) (sl []string, err error) {
+  f := func(c rune) bool {
+    return c == ','
+  }
+  sl = strings.FieldsFunc(s, f)
+  return
+}
+
 func (p *GitHubPki) getEnv() {
   p.Env = &Environment{}
   p.Env.Token = os.Getenv("GITHUB_TOKEN")
   p.Env.Org = os.Getenv("GITHUB_ORG")
-  p.Env.Teams = strings.Split(os.Getenv("GITHUB_TEAM"), ",")
-  p.Env.Users = strings.Split(os.Getenv("GITHUB_USERS"), ",")
+  p.Env.Teams, _ = commaSplit(os.Getenv("GITHUB_TEAM"))
+  p.Env.Users, _ = commaSplit(os.Getenv("GITHUB_USERS"))
   p.Env.AuthorizedKeys = os.Getenv("AUTHORIZED_KEYS")
 }
 
