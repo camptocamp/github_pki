@@ -8,7 +8,7 @@ import (
   "fmt"
   "golang.org/x/oauth2"
   "github.com/google/go-github/github"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 type User struct {
@@ -80,9 +80,9 @@ func (p *GitHubPki) getTeamUsers() (err error) {
       if os.Getenv("GITHUB_TEAM") == "" || *team.Name == t {
         gh_users, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
         checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
-        logrus.Infof("Adding users for team %v", *team.Name)
+        log.Infof("Adding users for team %v", *team.Name)
         for _, gh_user := range gh_users {
-          logrus.Infof("Adding user %v", *gh_user.Login)
+          log.Infof("Adding user %v", *gh_user.Login)
           user := User{gh_user.Login, nil}
           p.Users = append(p.Users, user)
         }
@@ -109,14 +109,14 @@ func (p *GitHubPki) getUsers() (err error) {
         split_u := strings.Split(u, "=")
         u = split_u[0]
         user.Alias = &split_u[1]
-        logrus.Infof("Adding individual user %v as %v", split_u[0], split_u[1])
+        log.Infof("Adding individual user %v as %v", split_u[0], split_u[1])
       } else {
-        logrus.Infof("Adding individual user %v", u)
+        log.Infof("Adding individual user %v", u)
       }
 
       gh_user, _, err := p.Client.Users.Get(u)
       if err != nil {
-        logrus.Errorf("Failed to find user %v", u)
+        log.Errorf("Failed to find user %v", u)
         return err
       }
       user.Login = gh_user.Login
@@ -130,7 +130,7 @@ func (p *GitHubPki) getUsers() (err error) {
 func (p *GitHubPki) writeAuthorizedKeys() (err error) {
   authorized_file := os.Getenv("AUTHORIZED_KEYS")
   if authorized_file != "" {
-    logrus.Infof("Generating %v", authorized_file)
+    log.Infof("Generating %v", authorized_file)
     var authorizedKeys []string
 
     for user, keys := range p.Keys {
@@ -151,7 +151,7 @@ func (p *GitHubPki) dumpSSLKeys() (err error) {
   // And/or dump SSL key
   ssl_dir := os.Getenv("SSL_DIR")
   if ssl_dir != "" {
-    logrus.Infof("Dumping X509 keys to %v", ssl_dir)
+    log.Infof("Dumping X509 keys to %v", ssl_dir)
     os.MkdirAll(ssl_dir, 0750)
 
     for user, keys := range p.Keys {
@@ -164,14 +164,14 @@ func (p *GitHubPki) dumpSSLKeys() (err error) {
         defer os.Remove(tmpfile.Name())
         tmpfile.Write([]byte(*key.Key))
 
-        logrus.Infof("Converting key %v/%v to X509", user, *key.ID)
+        log.Infof("Converting key %v/%v to X509", user, *key.ID)
         cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
 
         // TODO: split stdout/stderr in case of errors
         ssl_key, err := cmd.CombinedOutput()
         keyStr := fmt.Sprintf("key %v/%v", user, *key.ID)
         if err != nil {
-          logrus.Errorf("Failed to convert "+keyStr+" to X509: %v", err)
+          log.Errorf("Failed to convert "+keyStr+" to X509: %v", err)
         } else {
           sslKeys = append(sslKeys, string(ssl_key))
         }
@@ -191,7 +191,7 @@ func (p *GitHubPki) dumpSSLKeys() (err error) {
 
 func (p *GitHubPki) getUserKeys() (err error) {
   for _, user := range p.Users {
-    logrus.Infof("Getting keys for user %v", *user.Login)
+    log.Infof("Getting keys for user %v", *user.Login)
 
     keys, _, err := p.Client.Users.ListKeys(*user.Login, nil)
     checkErr(err, "Failed to list keys for user "+*user.Login)
@@ -213,6 +213,6 @@ func (p *GitHubPki) getUserKeys() (err error) {
 
 func checkErr(err error, msg string) {
   if err != nil {
-    logrus.Errorf(msg, err)
+    log.Errorf(msg, err)
   }
 }
