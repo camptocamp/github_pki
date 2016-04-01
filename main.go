@@ -16,6 +16,12 @@ type User struct {
   Alias  *string
 }
 
+type GitHubPki struct {
+  Client *github.Client
+  Users  []User
+  Keys   map[string][]github.Key
+}
+
 func main() {
   gh_token := os.Getenv("GITHUB_TOKEN")
   ts := oauth2.StaticTokenSource(
@@ -23,26 +29,27 @@ func main() {
   )
   tc := oauth2.NewClient(oauth2.NoContext, ts)
 
-  client := github.NewClient(tc)
+  pki := GitHubPki{}
+  pki.Client = github.NewClient(tc)
 
   // Get users from teams
-  users, err := getTeamUsers(client)
+  err := pki.getTeamUsers()
   checkErr(err, "Failed to get team users: %v")
 
-  users, err = getUsers(client, users)
+  err = pki.getUsers()
   checkErr(err, "Failed to add individual users: %v")
 
-  keys, err := getUserKeys(client, users)
+  err = pki.getUserKeys()
   checkErr(err, "Failed to retrieve user keys: %v")
 
-  err = writeAuthorizedKeys(keys)
+  err = pki.writeAuthorizedKeys()
   checkErr(err, "Failed to write authorized keys file: %v")
 
-  err = dumpSSLKeys(keys)
+  err = pki.dumpSSLKeys()
   checkErr(err, "Failed to dump SSL keys: %v")
 }
 
-func getTeamUsers(client *github.Client) (users []User, err error) {
+func (p *GitHubPki) getTeamUsers() (err error) {
   gh_org := os.Getenv("GITHUB_ORG")
   gh_teams := strings.Split(os.Getenv("GITHUB_TEAM"), ",")
 
@@ -58,7 +65,7 @@ func getTeamUsers(client *github.Client) (users []User, err error) {
       PerPage: 100,
       Page: page,
     }
-    ts, resp, err := client.Organizations.ListTeams(gh_org, opt)
+    ts, resp, err := p.Client.Organizations.ListTeams(gh_org, opt)
     checkErr(err, "Failed to list teams for organization "+gh_org+": %v")
     page = resp.NextPage
     for _, t := range ts {
@@ -71,13 +78,13 @@ func getTeamUsers(client *github.Client) (users []User, err error) {
   for _, team := range teams {
     for _, t := range gh_teams {
       if os.Getenv("GITHUB_TEAM") == "" || *team.Name == t {
-        gh_users, _, err := client.Organizations.ListTeamMembers(*team.ID, nil)
+        gh_users, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
         checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
         logrus.Infof("Adding users for team %v", *team.Name)
         for _, gh_user := range gh_users {
           logrus.Infof("Adding user %v", *gh_user.Login)
           user := User{gh_user.Login, nil}
-          users = append(users, user)
+          p.Users = append(p.Users, user)
         }
         found_teams = append(found_teams, t)
       }
@@ -91,9 +98,7 @@ func getTeamUsers(client *github.Client) (users []User, err error) {
   return
 }
 
-func getUsers(client *github.Client, users []User) ([]User, error) {
-  var err error
-
+func (p *GitHubPki) getUsers() (err error) {
   if os.Getenv("GITHUB_USERS") != "" {
     individualUsers := strings.Split(os.Getenv("GITHUB_USERS"), ",")
 
@@ -109,26 +114,26 @@ func getUsers(client *github.Client, users []User) ([]User, error) {
         logrus.Infof("Adding individual user %v", u)
       }
 
-      gh_user, _, err := client.Users.Get(u)
+      gh_user, _, err := p.Client.Users.Get(u)
       if err != nil {
         logrus.Errorf("Failed to find user %v", u)
-        return users, err
+        return err
       }
       user.Login = gh_user.Login
-      users = append(users, user)
+      p.Users = append(p.Users, user)
     }
   }
 
-  return users, err
+  return
 }
 
-func writeAuthorizedKeys(all_keys map[string][]github.Key) (err error) {
+func (p *GitHubPki) writeAuthorizedKeys() (err error) {
   authorized_file := os.Getenv("AUTHORIZED_KEYS")
   if authorized_file != "" {
     logrus.Infof("Generating %v", authorized_file)
     var authorizedKeys []string
 
-    for user, keys := range all_keys {
+    for user, keys := range p.Keys {
       for _, key := range keys {
         authorizedLine := fmt.Sprintf("%v %v_%v", *key.Key, user, *key.ID)
         authorizedKeys = append(authorizedKeys, authorizedLine)
@@ -142,14 +147,14 @@ func writeAuthorizedKeys(all_keys map[string][]github.Key) (err error) {
   return
 }
 
-func dumpSSLKeys(all_keys map[string][]github.Key) (err error) {
+func (p *GitHubPki) dumpSSLKeys() (err error) {
   // And/or dump SSL key
   ssl_dir := os.Getenv("SSL_DIR")
   if ssl_dir != "" {
     logrus.Infof("Dumping X509 keys to %v", ssl_dir)
     os.MkdirAll(ssl_dir, 0750)
 
-    for user, keys := range all_keys {
+    for user, keys := range p.Keys {
       var sslKeys []string
 
       for _, key := range keys {
@@ -184,11 +189,11 @@ func dumpSSLKeys(all_keys map[string][]github.Key) (err error) {
 }
 
 
-func getUserKeys(client *github.Client, users []User) (all_keys map[string][]github.Key, err error) {
-  for _, user := range users {
+func (p *GitHubPki) getUserKeys() (err error) {
+  for _, user := range p.Users {
     logrus.Infof("Getting keys for user %v", *user.Login)
 
-    keys, _, err := client.Users.ListKeys(*user.Login, nil)
+    keys, _, err := p.Client.Users.ListKeys(*user.Login, nil)
     checkErr(err, "Failed to list keys for user "+*user.Login)
 
     var login string
@@ -199,7 +204,7 @@ func getUserKeys(client *github.Client, users []User) (all_keys map[string][]git
     }
 
     for _, k := range keys {
-      all_keys[login] = append(all_keys[login], k)
+      p.Keys[login] = append(p.Keys[login], k)
     }
   }
 
