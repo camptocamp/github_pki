@@ -102,7 +102,7 @@ func (p *GitHubPki) getTeamUsers() (err error) {
 
   for _, team := range teams {
     for _, t := range p.Env.Teams {
-      if cap(p.Env.Teams) == 0 || *team.Name == t {
+      if *team.Name == t {
         gh_users, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
         checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
         log.Infof("Adding users for team %v", *team.Name)
