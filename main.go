@@ -97,24 +97,24 @@ func (p *gitHubPki) getTeamUsers() (err error) {
     teams = append(teams, ts...)
   }
 
-  var found_teams []string
+  var foundTeams []string
 
   for _, team := range teams {
     for _, t := range p.Env.Teams {
       if *team.Name == t {
-        gh_users, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
+        ghUsers, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
         checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
         log.Infof("Adding users for team %v", *team.Name)
-        for _, gh_user := range gh_users {
-          log.Infof("Adding user %v", *gh_user.Login)
-          user := user{gh_user.Login, nil}
+        for _, ghUser := range ghUsers {
+          log.Infof("Adding user %v", *ghUser.Login)
+          user := user{ghUser.Login, nil}
           p.addUser(user)
         }
-        found_teams = append(found_teams, t)
+        foundTeams = append(foundTeams, t)
       }
     }
 
-    if len(found_teams) == len(p.Env.Teams) {
+    if len(foundTeams) == len(p.Env.Teams) {
       return
     }
   }
@@ -127,20 +127,20 @@ func (p *gitHubPki) getUsers() (err error) {
     user := user{}
 
     if strings.Contains(u, "=") {
-      split_u := strings.Split(u, "=")
-      u = split_u[0]
-      user.Alias = &split_u[1]
-      log.Infof("Adding individual user %v as %v", split_u[0], split_u[1])
+      splitU := strings.Split(u, "=")
+      u = splitU[0]
+      user.Alias = &splitU[1]
+      log.Infof("Adding individual user %v as %v", splitU[0], splitU[1])
     } else {
       log.Infof("Adding individual user %v", u)
     }
 
-    gh_user, _, err := p.Client.Users.Get(u)
+    ghUser, _, err := p.Client.Users.Get(u)
     if err != nil {
       log.Errorf("Failed to find user %v", u)
       return err
     }
-    user.Login = gh_user.Login
+    user.Login = ghUser.Login
     p.addUser(user)
   }
 
@@ -205,19 +205,19 @@ func (p *gitHubPki) dumpSSLKeys() (err error) {
         cmd := exec.Command("ssh-keygen", "-f", tmpfile.Name(), "-e", "-m", "pem")
 
         // TODO: split stdout/stderr in case of errors
-        ssl_key, err := cmd.CombinedOutput()
+        sslKey, err := cmd.CombinedOutput()
         keyStr := fmt.Sprintf("key %v/%v", user, *key.ID)
         if err != nil {
           log.Errorf("Failed to convert "+keyStr+" to X509: %v", err)
         } else {
-          sslKeys = append(sslKeys, string(ssl_key))
+          sslKeys = append(sslKeys, string(sslKey))
         }
       }
 
-      ssl_keyfile := fmt.Sprintf("%s/%v.pem", p.Env.SSLDir, user)
+      sslKeyfile := fmt.Sprintf("%s/%v.pem", p.Env.SSLDir, user)
 
       keys := []byte(strings.Join(sslKeys, "\n")+"\n")
-      err = ioutil.WriteFile(ssl_keyfile, keys, 0644)
+      err = ioutil.WriteFile(sslKeyfile, keys, 0644)
       checkErr(err, "Failed to write key file: %v")
     }
   }
