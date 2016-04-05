@@ -11,12 +11,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type User struct {
+type user struct {
   Login  *string
   Alias  *string
 }
 
-type Environment struct {
+type environment struct {
   Token          string
   Org            string
   Teams          []string
@@ -25,15 +25,15 @@ type Environment struct {
   SSLDir         string
 }
 
-type GitHubPki struct {
-  Env         *Environment
+type gitHubPki struct {
+  Env         *environment
   Client      *github.Client
-  Users       []User
+  Users       []user
   Keys        map[string][]github.Key
 }
 
 func main() {
-  pki := GitHubPki{}
+  pki := gitHubPki{}
   pki.getEnv()
 
   ts := oauth2.StaticTokenSource(
@@ -68,8 +68,8 @@ func commaSplit(s string) (sl []string, err error) {
   return
 }
 
-func (p *GitHubPki) getEnv() {
-  p.Env = &Environment{}
+func (p *gitHubPki) getEnv() {
+  p.Env = &environment{}
   p.Env.Token = os.Getenv("GITHUB_TOKEN")
   p.Env.Org = os.Getenv("GITHUB_ORG")
   p.Env.Teams, _ = commaSplit(os.Getenv("GITHUB_TEAM"))
@@ -78,7 +78,7 @@ func (p *GitHubPki) getEnv() {
   p.Env.SSLDir = os.Getenv("SSL_DIR")
 }
 
-func (p *GitHubPki) getTeamUsers() (err error) {
+func (p *gitHubPki) getTeamUsers() (err error) {
   if p.Env.Org == "" {
     return
   }
@@ -107,7 +107,7 @@ func (p *GitHubPki) getTeamUsers() (err error) {
         log.Infof("Adding users for team %v", *team.Name)
         for _, gh_user := range gh_users {
           log.Infof("Adding user %v", *gh_user.Login)
-          user := User{gh_user.Login, nil}
+          user := user{gh_user.Login, nil}
           p.addUser(user)
         }
         found_teams = append(found_teams, t)
@@ -122,9 +122,9 @@ func (p *GitHubPki) getTeamUsers() (err error) {
   return
 }
 
-func (p *GitHubPki) getUsers() (err error) {
+func (p *gitHubPki) getUsers() (err error) {
   for _, u := range p.Env.Users {
-    user := User{}
+    user := user{}
 
     if strings.Contains(u, "=") {
       split_u := strings.Split(u, "=")
@@ -147,7 +147,7 @@ func (p *GitHubPki) getUsers() (err error) {
   return
 }
 
-func (p *GitHubPki) addUser(user User) (err error) {
+func (p *gitHubPki) addUser(user user) (err error) {
   for _, u := range p.Users {
     if *u.Login == *user.Login {
       if u.Alias == nil && user.Alias == nil {
@@ -166,7 +166,7 @@ func (p *GitHubPki) addUser(user User) (err error) {
   return
 }
 
-func (p *GitHubPki) writeAuthorizedKeys() (err error) {
+func (p *gitHubPki) writeAuthorizedKeys() (err error) {
   if p.Env.AuthorizedKeys != "" {
     log.Infof("Generating %v", p.Env.AuthorizedKeys)
     var authorizedKeys []string
@@ -185,7 +185,7 @@ func (p *GitHubPki) writeAuthorizedKeys() (err error) {
   return
 }
 
-func (p *GitHubPki) dumpSSLKeys() (err error) {
+func (p *gitHubPki) dumpSSLKeys() (err error) {
   // And/or dump SSL key
   if p.Env.SSLDir != "" {
     log.Infof("Dumping X509 keys to %v", p.Env.SSLDir)
@@ -226,7 +226,7 @@ func (p *GitHubPki) dumpSSLKeys() (err error) {
 }
 
 
-func (p *GitHubPki) getUserKeys() (err error) {
+func (p *gitHubPki) getUserKeys() (err error) {
   p.Keys = make(map[string][]github.Key)
   for _, user := range p.Users {
     log.Infof("Getting keys for user %v", *user.Login)
