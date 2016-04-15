@@ -19,12 +19,12 @@ type user struct {
 }
 
 type environment struct {
-  Token          string    `env:"GITHUB_TOKEN"`
-  Org            string    `env:"GITHUB_ORG"`
-  Teams          []string  `env:"GITHUB_TEAM"`
-  Users          []string  `env:"GITHUB_USERS"`
-  AuthorizedKeys string    `env:"AUTHORIZED_KEYS"`
-  SSLDir         string    `env:"SSL_DIR"`
+	Token          string   `env:"GITHUB_TOKEN"`
+	Org            string   `env:"GITHUB_ORG"`
+	Teams          []string `env:"GITHUB_TEAM"`
+	Users          []string `env:"GITHUB_USERS"`
+	AuthorizedKeys string   `env:"AUTHORIZED_KEYS"`
+	SSLDir         string   `env:"SSL_DIR"`
 }
 
 type gitHubPki struct {
@@ -72,7 +72,7 @@ func commaSplit(s string) (sl []string) {
 
 func (p *gitHubPki) getEnv() {
 	p.Env = &environment{}
-  env.Parse(p.Env)
+	env.Parse(p.Env)
 }
 
 func (p *gitHubPki) getTeamUsers() (err error) {
