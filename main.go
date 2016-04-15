@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/caarlos0/env"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -18,12 +19,12 @@ type user struct {
 }
 
 type environment struct {
-	Token          string
-	Org            string
-	Teams          []string
-	Users          []string
-	AuthorizedKeys string
-	SSLDir         string
+  Token          string    `env:"GITHUB_TOKEN"`
+  Org            string    `env:"GITHUB_ORG"`
+  Teams          []string  `env:"GITHUB_TEAM"`
+  Users          []string  `env:"GITHUB_USERS"`
+  AuthorizedKeys string    `env:"AUTHORIZED_KEYS"`
+  SSLDir         string    `env:"SSL_DIR"`
 }
 
 type gitHubPki struct {
@@ -70,14 +71,8 @@ func commaSplit(s string) (sl []string) {
 }
 
 func (p *gitHubPki) getEnv() {
-	p.Env = &environment{
-		Token:          os.Getenv("GITHUB_TOKEN"),
-		Org:            os.Getenv("GITHUB_ORG"),
-		Teams:          commaSplit(os.Getenv("GITHUB_TEAM")),
-		Users:          commaSplit(os.Getenv("GITHUB_USERS")),
-		AuthorizedKeys: os.Getenv("AUTHORIZED_KEYS"),
-		SSLDir:         os.Getenv("SSL_DIR"),
-	}
+	p.Env = &environment{}
+  env.Parse(p.Env)
 }
 
 func (p *gitHubPki) getTeamUsers() (err error) {
