@@ -8,6 +8,11 @@
 			"Rev": "418b41d23a1bf978c06faea5313ba194650ac088"
 		},
 		{
+			"ImportPath": "github.com/caarlos0/env",
+			"Comment": "v2.0-5-g26ad260",
+			"Rev": "26ad2601cc3a3333e3c7a98c404d6dd3533e0f5b"
+		},
+		{
 			"ImportPath": "github.com/google/go-github/github",
 			"Rev": "58e27d2951882f0b3101ba9d6e0c34a0a49350c6"
 		},
