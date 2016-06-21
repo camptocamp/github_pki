@@ -116,7 +116,9 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 		ts, resp, err := p.Client.Organizations.ListTeams(p.Config.Org, opt)
 		checkErr(err, "Failed to list teams for organization "+p.Config.Org+": %v")
 		page = resp.NextPage
-		teams = append(teams, ts...)
+		for _, t := range ts {
+			teams = append(teams, *t)
+		}
 	}
 
 	var foundTeams []string
@@ -277,12 +279,14 @@ func (p *gitHubPki) getUserKeys() (err error) {
 		if user.KeyID != nil {
 			for _, k := range keys {
 				if *k.ID == *user.KeyID {
-					p.Keys[login] = append(p.Keys[login], k)
+					p.Keys[login] = append(p.Keys[login], *k)
 					break
 				}
 			}
 		} else {
-			p.Keys[login] = append(p.Keys[login], keys...)
+			for _, k := range keys {
+				p.Keys[login] = append(p.Keys[login], *k)
+			}
 		}
 	}
 
