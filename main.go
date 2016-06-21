@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -84,6 +85,13 @@ func (p *gitHubPki) getEnv() (err error) {
 
 	if p.Config.Version {
 		fmt.Printf("Github_pki v%v\n", version)
+		os.Exit(0)
+	}
+
+	if p.Config.Manpage {
+		var buf bytes.Buffer
+		parser.WriteManPage(&buf)
+		fmt.Printf(buf.String())
 		os.Exit(0)
 	}
 
