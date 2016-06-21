@@ -1,3 +1,9 @@
+# [0.10.2](https://github.com/camptocamp/github_pki/releases/tag/0.10.2) (2016-06-21)
+
+* Bugfixes:
+
+  - Process individual users first
+
 # [0.10.1](https://github.com/camptocamp/github_pki/releases/tag/0.10.1) (2016-06-21)
 
 * Bugfixes:
