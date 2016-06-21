@@ -3,7 +3,7 @@ VERSION = $(shell git describe --always --dirty)
 
 all: github_pki github_pki.1
 
-conplicity: main.go $(DEPS)
+github_pki: main.go $(DEPS)
 	CGO_ENABLED=0 GOOS=linux \
 	  go build -a \
 		  -ldflags="-X main.version=$(VERSION)" \
@@ -30,4 +30,4 @@ imports: main.go
 test: lint vet imports
 
 clean:
-	rm -f main main.1
+	rm -f github_pki github_pki.1
