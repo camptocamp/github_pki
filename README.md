@@ -26,6 +26,14 @@ $ github_pki -s /etc/software/ssl \
              -t 398d6d326b546d70f9e1ef91abad1fc5ee0f1f39
 ```
 
+### Using docker
+
+```
+$ docker run -v $PWD/authorized_keys:/authorized_keys \
+             -e GITHUB_TOKEN=398d6d326b546d70f9e1ef91abad1fc5ee0f1f39 \
+             camptocamp/github_pki -u bob -u alice=jessie \
+                -a /authorized_keys
+```
 
 ### Individual user format
 
