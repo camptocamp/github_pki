@@ -1,3 +1,9 @@
+# [0.10.0](https://github.com/camptocamp/github_pki/releases/tag/0.10.0) (2016-06-21)
+
+* Docker:
+
+  - Use golang:onbuild again (we need `ssh-keygen`)
+
 # [0.9.0](https://github.com/camptocamp/github_pki/releases/tag/0.9.0) (2016-06-21)
 
 * Features:
