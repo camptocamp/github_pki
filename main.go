@@ -53,12 +53,15 @@ func main() {
 
 	pki.Client = github.NewClient(tc)
 
+	// First check individual users
+	// to enforce specific parameters
+	// and avoid duplicates from teams
+	err = pki.getUsers()
+	checkErr(err, "Failed to add individual users: %v")
+
 	// Get users from teams
 	err = pki.getTeamUsers()
 	checkErr(err, "Failed to get team users: %v")
-
-	err = pki.getUsers()
-	checkErr(err, "Failed to add individual users: %v")
 
 	err = pki.getUserKeys()
 	checkErr(err, "Failed to retrieve user keys: %v")
