@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -17,6 +18,7 @@ import (
 type user struct {
 	Login *string
 	Alias *string
+	KeyID *int
 }
 
 type config struct {
@@ -127,7 +129,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 				log.Infof("Adding users for team %v", *team.Name)
 				for _, ghUser := range ghUsers {
 					log.Infof("Adding user %v", *ghUser.Login)
-					user := user{ghUser.Login, nil}
+					user := user{ghUser.Login, nil, nil}
 					p.addUser(user)
 				}
 				foundTeams = append(foundTeams, t)
@@ -145,6 +147,18 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 func (p *gitHubPki) getUsers() (err error) {
 	for _, u := range p.Config.Users {
 		user := user{}
+
+		if strings.Contains(u, ":") {
+			splitU := strings.Split(u, ":")
+			u = splitU[0]
+			keyID, err := strconv.Atoi(splitU[1])
+			if err != nil {
+				return err
+			}
+
+			user.KeyID = &keyID
+			log.Infof("Using key ID %v for user %v", *user.KeyID, u)
+		}
 
 		if strings.Contains(u, "=") {
 			splitU := strings.Split(u, "=")
@@ -260,7 +274,16 @@ func (p *gitHubPki) getUserKeys() (err error) {
 			login = *user.Login
 		}
 
-		p.Keys[login] = append(p.Keys[login], keys...)
+		if user.KeyID != nil {
+			for _, k := range keys {
+				if *k.ID == *user.KeyID {
+					p.Keys[login] = append(p.Keys[login], k)
+					break
+				}
+			}
+		} else {
+			p.Keys[login] = append(p.Keys[login], keys...)
+		}
 	}
 
 	return
