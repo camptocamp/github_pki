@@ -1,3 +1,9 @@
+# [0.10.1](https://github.com/camptocamp/github_pki/releases/tag/0.10.1) (2016-06-21)
+
+* Bugfixes:
+
+  - Specify env-delim for environment variables feeding slices
+
 # [0.10.0](https://github.com/camptocamp/github_pki/releases/tag/0.10.0) (2016-06-21)
 
 * Docker:
