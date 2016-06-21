@@ -19,6 +19,7 @@ type user struct {
 }
 
 type config struct {
+	Version        bool     `short:"V" long:"version" description:"Display version."`
 	Token          string   `short:"t" long:"token" description:"GitHub token" env:"GITHUB_TOKEN"`
 	Org            string   `short:"o" long:"org" description:"GitHub organization to include." env:"GITHUB_ORG"`
 	Teams          []string `short:"T" long:"teams" description:"GitHub teams to include." env:"GITHUB_TEAM"`
@@ -34,6 +35,8 @@ type gitHubPki struct {
 	Users  []user
 	Keys   map[string][]github.Key
 }
+
+var version = "undefined"
 
 func main() {
 	pki := gitHubPki{}
@@ -77,6 +80,11 @@ func (p *gitHubPki) getEnv() (err error) {
 	parser := flags.NewParser(p.Config, flags.Default)
 	if _, err = parser.Parse(); err != nil {
 		os.Exit(1)
+	}
+
+	if p.Config.Version {
+		fmt.Printf("Github_pki v%v\n", version)
+		os.Exit(0)
 	}
 
 	return
