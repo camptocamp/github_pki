@@ -18,17 +18,18 @@ type user struct {
 	Alias *string
 }
 
-type environment struct {
+type config struct {
 	Token          string   `short:"t" long:"token" description:"GitHub token" env:"GITHUB_TOKEN"`
 	Org            string   `short:"o" long:"org" description:"GitHub organization to include." env:"GITHUB_ORG"`
 	Teams          []string `short:"T" long:"teams" description:"GitHub teams to include." env:"GITHUB_TEAM"`
 	Users          []string `short:"u" long:"users" description:"GitHub users to include." env:"GITHUB_USERS"`
 	AuthorizedKeys string   `short:"a" long:"authorized-keys" description:"authorized_keys file." env:"AUTHORIZED_KEYS"`
 	SSLDir         string   `short:"s" long:"ssl-dir" description:"SSL directory to dump X509 keys to." env:"SSL_DIR"`
+	Manpage        bool     `short:"m" long:"manpage" description:"Output manpage."`
 }
 
 type gitHubPki struct {
-	Env    *environment
+	Config *config
 	Client *github.Client
 	Users  []user
 	Keys   map[string][]github.Key
@@ -36,17 +37,18 @@ type gitHubPki struct {
 
 func main() {
 	pki := gitHubPki{}
-	pki.getEnv()
+	err := pki.getEnv()
+	checkErr(err, "Failed to get config: %v")
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: pki.Env.Token},
+		&oauth2.Token{AccessToken: pki.Config.Token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
 	pki.Client = github.NewClient(tc)
 
 	// Get users from teams
-	err := pki.getTeamUsers()
+	err = pki.getTeamUsers()
 	checkErr(err, "Failed to get team users: %v")
 
 	err = pki.getUsers()
@@ -70,14 +72,18 @@ func commaSplit(s string) (sl []string) {
 	return
 }
 
-func (p *gitHubPki) getEnv() {
-	p.Env = &environment{}
-	parser := flags.NewParser(&environment{}, flags.Default)
-	parser.Parse()
+func (p *gitHubPki) getEnv() (err error) {
+	p.Config = &config{}
+	parser := flags.NewParser(p.Config, flags.Default)
+	if _, err = parser.Parse(); err != nil {
+		os.Exit(1)
+	}
+
+	return
 }
 
 func (p *gitHubPki) getTeamUsers() (err error) {
-	if p.Env.Org == "" {
+	if p.Config.Org == "" {
 		return
 	}
 
@@ -89,8 +95,8 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 			PerPage: 100,
 			Page:    page,
 		}
-		ts, resp, err := p.Client.Organizations.ListTeams(p.Env.Org, opt)
-		checkErr(err, "Failed to list teams for organization "+p.Env.Org+": %v")
+		ts, resp, err := p.Client.Organizations.ListTeams(p.Config.Org, opt)
+		checkErr(err, "Failed to list teams for organization "+p.Config.Org+": %v")
 		page = resp.NextPage
 		teams = append(teams, ts...)
 	}
@@ -98,7 +104,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 	var foundTeams []string
 
 	for _, team := range teams {
-		for _, t := range p.Env.Teams {
+		for _, t := range p.Config.Teams {
 			if *team.Name == t {
 				ghUsers, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
 				checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
@@ -112,7 +118,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 			}
 		}
 
-		if len(foundTeams) == len(p.Env.Teams) {
+		if len(foundTeams) == len(p.Config.Teams) {
 			return
 		}
 	}
@@ -121,7 +127,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 }
 
 func (p *gitHubPki) getUsers() (err error) {
-	for _, u := range p.Env.Users {
+	for _, u := range p.Config.Users {
 		user := user{}
 
 		if strings.Contains(u, "=") {
@@ -165,8 +171,8 @@ func (p *gitHubPki) addUser(user user) (err error) {
 }
 
 func (p *gitHubPki) writeAuthorizedKeys() (err error) {
-	if p.Env.AuthorizedKeys != "" {
-		log.Infof("Generating %v", p.Env.AuthorizedKeys)
+	if p.Config.AuthorizedKeys != "" {
+		log.Infof("Generating %v", p.Config.AuthorizedKeys)
 		var authorizedKeys []string
 
 		for user, keys := range p.Keys {
@@ -177,7 +183,7 @@ func (p *gitHubPki) writeAuthorizedKeys() (err error) {
 		}
 
 		authorizedBytes := []byte(strings.Join(authorizedKeys, "\n") + "\n")
-		err = ioutil.WriteFile(p.Env.AuthorizedKeys, authorizedBytes, 0644)
+		err = ioutil.WriteFile(p.Config.AuthorizedKeys, authorizedBytes, 0644)
 	}
 
 	return
@@ -185,9 +191,9 @@ func (p *gitHubPki) writeAuthorizedKeys() (err error) {
 
 func (p *gitHubPki) dumpSSLKeys() (err error) {
 	// And/or dump SSL key
-	if p.Env.SSLDir != "" {
-		log.Infof("Dumping X509 keys to %v", p.Env.SSLDir)
-		os.MkdirAll(p.Env.SSLDir, 0750)
+	if p.Config.SSLDir != "" {
+		log.Infof("Dumping X509 keys to %v", p.Config.SSLDir)
+		os.MkdirAll(p.Config.SSLDir, 0750)
 
 		for user, keys := range p.Keys {
 			var sslKeys []string
@@ -212,7 +218,7 @@ func (p *gitHubPki) dumpSSLKeys() (err error) {
 				}
 			}
 
-			sslKeyfile := fmt.Sprintf("%s/%v.pem", p.Env.SSLDir, user)
+			sslKeyfile := fmt.Sprintf("%s/%v.pem", p.Config.SSLDir, user)
 
 			keys := []byte(strings.Join(sslKeys, "\n") + "\n")
 			err = ioutil.WriteFile(sslKeyfile, keys, 0644)
