@@ -1,0 +1,19 @@
+language: go
+sudo: required
+services: docker
+go:
+- 1.6
+install:
+- go get ./...
+after_success:
+- "./.travis/build.sh && ./.travis/publish.sh"
+deploy:
+  provider: releases
+  api_key:
+    secure: yhS2g5iGk2pb6T/JbsIkElhd7ZdCKqaHmSa1qEi5cou/VESi+gTRnRzGyc36f+fXEJ59r5cx3eJgtqhFDBEUGnussVjxz7xHBRPuSXWlHHpnVl/SEusevMObLPQhXAPOWXTl9ywNNRhKLOh8lqIAPN8NhxjeZBWTuhJEPvxKboRTWxHCM+KtSXNx9kOXnpVmWkzLf+9SDZHY/wPjok+BsALvGqXn/Q2t/DS9EdiSDnCdFsqREVbbf/WkqQnYeUr3oGGgHYpj16mZpppxfS+l0AmUzxImrgBX+Zf1JDn7yZ7METsnoe7lC/PkBDUOitgOS0YAtlSWozCMuHbMX0qY/JIbNdpKb6U+zQrINuhMMt5MIgA9hdMGwDnJHt2oNdcFzaieUbZE6wnT6xSd75umMKg24+bVH6oGF3fbi6Yc2eq/fFl8YNMr1O/dx3mINsCVukzRPT+LRUfn7eedoYNRRT77cizpDy/1h3ChgPlMUHInk4/g8tu+jp1O0qvBU7cwV7ECSlpacMP0PWTztALQEAONhcRUG2XyBEJMrxLnuFPuhF3HM1wV5r21tSxp40SHHbzytdaqFLSkudDmI5GbJVwXEzkQtmu8yDBItTgFEhGsuOq1z6PAVB1GXnmF6gbd01WXQPDeGbtIZP0g2IaCiYaF69wReEjJ+3yy7MpEMp0=
+  file:
+  - github_pki
+  - github_pki.1
+  on:
+    repo: camptocamp/github_pki
+    tags: true
