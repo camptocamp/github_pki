@@ -2,6 +2,7 @@ GitHub PKI
 ==========
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/camptocamp/github_pki.svg)](https://hub.docker.com/r/camptocamp/github_pki/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/camptocamp/github_pki)](https://goreportcard.com/report/github.com/camptocamp/github_pki)
 [![By Camptocamp](https://img.shields.io/badge/by-camptocamp-fb7047.svg)](http://www.camptocamp.com)
 
 
