@@ -217,8 +217,14 @@ func (p *gitHubPki) writeAuthorizedKeys() (err error) {
 			}
 		}
 
-		authorizedBytes := []byte(strings.Join(authorizedKeys, "\n") + "\n")
-		err = ioutil.WriteFile(p.Config.AuthorizedKeys, authorizedBytes, 0644)
+		authorizedStr := strings.Join(authorizedKeys, "\n") + "\n"
+
+		if p.Config.AuthorizedKeys == "-" {
+			fmt.Print(authorizedStr)
+		} else {
+			authorizedBytes := []byte(authorizedStr)
+			err = ioutil.WriteFile(p.Config.AuthorizedKeys, authorizedBytes, 0644)
+		}
 	}
 
 	return
