@@ -1,3 +1,9 @@
+# [0.10.3](https://github.com/camptocamp/github_pki/releases/tag/0.10.3) (2017-02-23)
+
+* Bugfixes:
+
+  - New version of go-github requires context
+
 # [0.10.2](https://github.com/camptocamp/github_pki/releases/tag/0.10.2) (2016-06-21)
 
 * Bugfixes:
