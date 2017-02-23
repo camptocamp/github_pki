@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -116,7 +117,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 			PerPage: 100,
 			Page:    page,
 		}
-		ts, resp, err := p.Client.Organizations.ListTeams(p.Config.Org, opt)
+		ts, resp, err := p.Client.Organizations.ListTeams(context.Background(), p.Config.Org, opt)
 		checkErr(err, "Failed to list teams for organization "+p.Config.Org+": %v")
 		page = resp.NextPage
 		for _, t := range ts {
@@ -129,7 +130,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 	for _, team := range teams {
 		for _, t := range p.Config.Teams {
 			if *team.Name == t {
-				ghUsers, _, err := p.Client.Organizations.ListTeamMembers(*team.ID, nil)
+				ghUsers, _, err := p.Client.Organizations.ListTeamMembers(context.Background(), *team.ID, nil)
 				checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
 				log.Infof("Adding users for team %v", *team.Name)
 				for _, ghUser := range ghUsers {
@@ -174,7 +175,7 @@ func (p *gitHubPki) getUsers() (err error) {
 			log.Infof("Adding individual user %v", u)
 		}
 
-		ghUser, _, err := p.Client.Users.Get(u)
+		ghUser, _, err := p.Client.Users.Get(context.Background(), u)
 		if err != nil {
 			log.Errorf("Failed to find user %v", u)
 			return err
@@ -275,7 +276,7 @@ func (p *gitHubPki) getUserKeys() (err error) {
 	for _, user := range p.Users {
 		log.Infof("Getting keys for user %v", *user.Login)
 
-		keys, _, err := p.Client.Users.ListKeys(*user.Login, nil)
+		keys, _, err := p.Client.Users.ListKeys(context.Background(), *user.Login, nil)
 		checkErr(err, "Failed to list keys for user "+*user.Login)
 
 		var login string
