@@ -189,7 +189,7 @@ func (p *gitHubPki) getUsers() (err error) {
 
 func (p *gitHubPki) addUser(user user) (err error) {
 	for _, u := range p.Users {
-		if *u.Login == *user.Login {
+		if *u.Login ==  *user.Login {
 			if u.Alias == nil && user.Alias == nil {
 				log.Infof("Not adding duplicate user %v", *user.Login)
 				return
@@ -288,7 +288,7 @@ func (p *gitHubPki) getUserKeys() (err error) {
 
 		if user.KeyID != nil {
 			for _, k := range keys {
-				if *k.ID == *user.KeyID {
+				if int64(*k.ID) == int64(*user.KeyID) {
 					p.Keys[login] = append(p.Keys[login], *k)
 					break
 				}
