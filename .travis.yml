@@ -2,7 +2,7 @@ language: go
 sudo: required
 services: docker
 go:
-- 1.6
+- 1.11
 install:
 - go get ./...
 after_success:
