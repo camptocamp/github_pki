@@ -132,7 +132,7 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 			if *team.Name == t {
 				var ghUsers []*github.User
 				opt := &github.TeamListTeamMembersOptions{
-					ListOptions: github.ListOptions{PerPage: 100},
+					ListOptions: github.ListOptions{},
 				}
 				for {
 					pageUsers, resp, err := p.Client.Teams.ListTeamMembers(context.Background(), *team.ID, opt)
