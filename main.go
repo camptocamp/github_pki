@@ -109,19 +109,15 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 		return
 	}
 
-	var teams []github.Team
+	var teams []*github.Team
 
-	page := 1
-	for page != 0 {
-		opt := &github.ListOptions{
-			PerPage: 100,
-			Page:    page,
-		}
+	opt := &github.ListOptions{}
+	for {
 		ts, resp, err := p.Client.Teams.ListTeams(context.Background(), p.Config.Org, opt)
 		checkErr(err, "Failed to list teams for organization "+p.Config.Org+": %v")
-		page = resp.NextPage
-		for _, t := range ts {
-			teams = append(teams, *t)
+		teams = append(teams, ts...)
+		if opt.Page = resp.NextPage; opt.Page == 0 {
+			break
 		}
 	}
 
