@@ -130,20 +130,17 @@ func (p *gitHubPki) getTeamUsers() (err error) {
 	for _, team := range teams {
 		for _, t := range p.Config.Teams {
 			if *team.Name == t {
-				var ghUsers []github.User
+				var ghUsers []*github.User
 				opt := &github.TeamListTeamMembersOptions{
 					ListOptions: github.ListOptions{PerPage: 100},
 				}
 				for {
 					pageUsers, resp, err := p.Client.Teams.ListTeamMembers(context.Background(), *team.ID, opt)
 					checkErr(err, "Failed to list team members for team "+*team.Name+": %v")
-					for _, u := range pageUsers {
-						ghUsers = append(ghUsers, *u)
-					}
-					if resp.NextPage == 0 {
+					ghUsers = append(ghUsers, pageUsers...)
+					if opt.Page = resp.NextPage; opt.Page == 0 {
 						break
 					}
-					opt.Page = resp.NextPage
 				}
 				log.Infof("Adding users for team %v", *team.Name)
 				for _, ghUser := range ghUsers {
