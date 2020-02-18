@@ -1,3 +1,13 @@
+# [0.10.4](https://github.com/camptocamp/github_pki/releases/tag/0.10.4) (2020-02-18)
+
+* Bugfixes:
+
+  - Dockerfile: followup on golang:onbuild depreciation [Marc Fournier]
+  - Modify the code for listing teams with pagination [Guewen Baconnier]
+  - Bump golang version to 1.11 [Julien]
+  - Team methods has moved in Teams object [Julien]
+  - fixing build [Pierre Mauduit]
+
 # [0.10.3](https://github.com/camptocamp/github_pki/releases/tag/0.10.3) (2017-02-23)
 
 * Bugfixes:
