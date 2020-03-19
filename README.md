@@ -36,7 +36,7 @@ First, make sure `github_pki` is installed in a directory only writable by
 root:
 
 ```
-$ go build
+$ make
 $ sudo cp github_pki /usr/local/bin/
 ```
 
