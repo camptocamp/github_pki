@@ -26,8 +26,8 @@ type config struct {
 	Version        bool     `short:"V" long:"version" description:"Display version."`
 	Token          string   `short:"t" long:"token" description:"GitHub token" env:"GITHUB_TOKEN"`
 	Org            string   `short:"o" long:"org" description:"GitHub organization to include." env:"GITHUB_ORG"`
-	Teams          []string `short:"T" long:"teams" description:"GitHub teams to include." env:"GITHUB_TEAM" env-delim:","`
-	Users          []string `short:"u" long:"users" description:"GitHub users to include." env:"GITHUB_USERS" env-delim:","`
+	Teams          []string `short:"T" long:"teams" description:"GitHub teams to include (comma separated)." env:"GITHUB_TEAMS" env-delim:","`
+	Users          []string `short:"u" long:"users" description:"GitHub users to include (comma separated)." env:"GITHUB_USERS" env-delim:","`
 	AuthorizedKeys string   `short:"a" long:"authorized-keys" description:"authorized_keys file." env:"AUTHORIZED_KEYS"`
 	SSLDir         string   `short:"s" long:"ssl-dir" description:"SSL directory to dump X509 keys to." env:"SSL_DIR"`
 	Manpage        bool     `short:"m" long:"manpage" description:"Output manpage."`
