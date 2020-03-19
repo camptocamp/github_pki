@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
 	"github.com/jessevdk/go-flags"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
@@ -195,7 +195,7 @@ func (p *gitHubPki) getUsers() (err error) {
 
 func (p *gitHubPki) addUser(user user) (err error) {
 	for _, u := range p.Users {
-		if *u.Login ==  *user.Login {
+		if *u.Login == *user.Login {
 			if u.Alias == nil && user.Alias == nil {
 				log.Infof("Not adding duplicate user %v", *user.Login)
 				return
