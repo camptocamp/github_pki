@@ -4,7 +4,7 @@ VERSION = $(shell git describe --always --dirty)
 all: github_pki github_pki.1
 
 github_pki: main.go $(DEPS)
-	CGO_ENABLED=0 GOOS=linux \
+	GO111MODULE=on CGO_ENABLED=0 GOOS=linux \
 	  go build -a \
 		  -ldflags="-X main.version=$(VERSION)" \
 	    -installsuffix cgo -o $@ $<
